@@ -1,6 +1,6 @@
 import json
 from src.utils import config_parse
-from multiprocessing import Queue, Pool, Process
+from multiprocessing import Queue, Pool, Process, Value
 import asyncio
 import os
 import signal
@@ -32,21 +32,29 @@ from feeds.binance import BinanceConnector
 
 
 
-def start_writer(queue):
-    writer = DataWriter(queue)
+def start_writer(queue, size_counter):
+    writer = DataWriter(queue, size_counter)
     writer.run()
 
+def monitor_queue(size_counter):
+    while True:
+        print(f'Queue size: {size_counter.value}')
+        time.sleep(1)
 
-async def main(queue, symbols, writer):
+
+async def main(queue, symbols, size_counter):
     print('entered main')
 
     # with Pool(processes=3) as pool:
     print('started pool')
-    binance = BinanceConnector(queue, symbols)
+    binance = BinanceConnector(queue, size_counter, symbols)
     streams['binance'] = binance
 
-    writer_p = Process(target=start_writer, args=(queue,))
+    writer_p = Process(target=start_writer, args=(queue,size_counter,))
     writer_p.start()
+
+    monitor_p = Process(target=monitor_queue, args=(size_counter,))
+    monitor_p.start()
 
     await asyncio.gather(
         *(stream.run() for stream in streams.values()),
@@ -85,18 +93,19 @@ async def shutdown(loop, streams, writer, queue):
 
 if __name__ == '__main__':
     queue = Queue()
+    size_counter = Value('i', 0)
     # queue = 'x'
     config = config_parse('config.json')
     symbols = config['Symbols']
     streams = {}
 
     loop = asyncio.get_event_loop()
-    writer = DataWriter(queue)
+    # writer = DataWriter(queue)
 
     # for sig in [signal.SIGTERM, signal.SIGINT]:
     #     loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop, streams, writer, queue)))
 
     print("starting loop")
-    loop.run_until_complete(main(queue, symbols, writer))
+    loop.run_until_complete(main(queue, symbols, size_counter))
     # asyncio.run(main(queue, symbols))
     # main(queue, symbols)

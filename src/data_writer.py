@@ -3,8 +3,9 @@ import time
 import asyncio
 
 class DataWriter:
-    def __init__(self, queue, base_dir='data'):
+    def __init__(self, queue, size_counter, base_dir='data'):
         self.queue = queue
+        self.size_counter = size_counter
         self.base_dir = base_dir
         self.running = True
 
@@ -12,9 +13,12 @@ class DataWriter:
         print('starting data_writer run')
         while self.running or not self.queue.empty():
             # try:
-            print('trying')
             message = self.queue.get()
-            print('got')
+
+            with self.size_counter.get_lock():
+                self.size_counter.value -= 1
+
+
             if message is None:
                 break
             exchange, symbol, data = message
@@ -22,6 +26,7 @@ class DataWriter:
             # except Exception as e:
             #     print(f'Error in writer: {e}')
             #     break
+            
     def write_data(self, exchange, symbol, data):
         dir_path = os.path.join(self.base_dir, exchange, symbol)
         os.makedirs(dir_path, exist_ok=True)
@@ -32,8 +37,8 @@ class DataWriter:
         with open(file_path, 'a') as f:
             f.write(str(int(time.time() * 10000000)))
             f.write(' ')
-            f.write(self.queue.qsize())
-            f.write(' ')
+            # f.write(self.queue.qsize())
+            # f.write(' ')
             f.write(data)
             f.write('\n')
         
