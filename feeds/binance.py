@@ -20,27 +20,27 @@ class BinanceConnector:
     # def start(self):
     #     asyncio.run(self.run())
 
-    async def run(self):
-        print('starting run')
-        # await asyncio.gather(
-        #     self.connect_feed()
-        # )
-        await self.connect_feed()
+    # async def run(self):
+    #     print('starting run')
+    #     # await asyncio.gather(
+    #     #     self.connect_feed()
+    #     # )
+    #     await self.connect_feed()
 
-    async def connect_feed(self):
-        print('start connect')
+    async def connect(self):
+        print('start binance connect')
         async with websockets.connect(self.ws_url) as ws:
-            print('start ws')
+            print('start binance ws')
             await asyncio.gather(*(self.subscribe(ws, coin.lower() + 'usdt')
                                   for coin in self.symbols))
             
             while True:
                 message = await ws.recv()
-                self.process_data(message)
+                asyncio.create_task(self.process_data(message))
+
 
 
     async def subscribe(self, ws, coin):
-
         subscription_msg = {
             "method":"SUBSCRIBE",
             "params":[
@@ -53,14 +53,18 @@ class BinanceConnector:
         }
         print('sending sub')
         await ws.send(json.dumps(subscription_msg))
-        _ = await ws.recv() # drop first message
+        # _ = await ws.recv() # drop first message
 
-    def process_data(self, message):
+    async def process_data(self, message):
+        data = json.loads(message)
         # print(message[:100])
         try:
-            coin = json.loads(message)['s']
-            self.queue.put_nowait(('binance', coin, message))
-            with self.size_counter.get_lock():
-                self.size_counter.value += 1
+            if data['e']:
+                coin = data['s']
+                self.queue.put_nowait(('binance', coin, message))
+                with self.size_counter.get_lock():
+                    self.size_counter.value += 1
+        except KeyError as ke:
+            pass
         except Full:
             print('QUEUE FULL, DROPPING ITEM')

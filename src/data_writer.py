@@ -10,7 +10,6 @@ class DataWriter:
         self.running = True
 
     def run(self):
-        print('starting data_writer run')
         while self.running or not self.queue.empty():
             # try:
             message = self.queue.get()
@@ -26,7 +25,7 @@ class DataWriter:
             # except Exception as e:
             #     print(f'Error in writer: {e}')
             #     break
-            
+
     def write_data(self, exchange, symbol, data):
         dir_path = os.path.join(self.base_dir, exchange, symbol)
         os.makedirs(dir_path, exist_ok=True)

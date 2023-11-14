@@ -1,6 +1,6 @@
 {
     "Symbols":[
-        "ETH"
+        "ETH", "BTC", "TIA", "SOL", "MATIC", "DYDX", "SUI", "LINK"
     ],
     "Exchanges": [
         "binance", "hyperliquid"

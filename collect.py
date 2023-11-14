@@ -1,5 +1,6 @@
 import json
 from src.utils import config_parse
+from src.discord_webhook import post_alert
 from multiprocessing import Queue, Pool, Process, Value
 import asyncio
 import os
@@ -10,7 +11,7 @@ from dotenv import load_dotenv
 from src.data_writer import DataWriter
 
 from feeds.binance import BinanceConnector
-# from feeds.hyperliquid import HyperliquidConnector
+from feeds.hyperliquid import HyperliquidConnector
 
 # every 5 min send discord message that we're good
 
@@ -43,12 +44,13 @@ def monitor_queue(size_counter):
 
 
 async def main(queue, symbols, size_counter):
-    print('entered main')
 
     # with Pool(processes=3) as pool:
-    print('started pool')
     binance = BinanceConnector(queue, size_counter, symbols)
     streams['binance'] = binance
+
+    hyperliquid = HyperliquidConnector(queue, size_counter, symbols)
+    streams['hyperliquid'] = hyperliquid
 
     writer_p = Process(target=start_writer, args=(queue,size_counter,))
     writer_p.start()
@@ -57,11 +59,10 @@ async def main(queue, symbols, size_counter):
     monitor_p.start()
 
     await asyncio.gather(
-        *(stream.run() for stream in streams.values()),
+        *(stream.connect() for stream in streams.values()),
     )
 
     # pool.apply(binance.start)
-    print('ran run')
 
         # hyperliquid = HyperliquidConnector(queue, symbols)
         # pool.apply_async(hyperliquid.run)
@@ -74,7 +75,6 @@ async def main(queue, symbols, size_counter):
 
 
 async def shutdown(loop, streams, writer, queue):
-    print("Shutting down")
 
     # Close streams
     for stream_name, stream in streams.items():
@@ -92,6 +92,7 @@ async def shutdown(loop, streams, writer, queue):
 
 
 if __name__ == '__main__':
+    load_dotenv()
     queue = Queue()
     size_counter = Value('i', 0)
     # queue = 'x'
@@ -104,8 +105,10 @@ if __name__ == '__main__':
 
     # for sig in [signal.SIGTERM, signal.SIGINT]:
     #     loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop, streams, writer, queue)))
+    try:
+        loop.run_until_complete(main(queue, symbols, size_counter))
+    except Exception as e:
+        post_alert(os.getenv("DISCORD_WEBHOOK_URL"), f"({time.time()}) we have an issue {e}")
 
-    print("starting loop")
-    loop.run_until_complete(main(queue, symbols, size_counter))
     # asyncio.run(main(queue, symbols))
     # main(queue, symbols)
