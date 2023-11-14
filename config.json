@@ -1,0 +1,14 @@
+{
+    "Symbols":[
+        "ETH"
+    ],
+    "Exchanges": [
+        "binance", "hyperliquid"
+    ],
+    "Feeds": [
+        "trades", "quotes", {"book": {
+            "depth": 20,
+            "update": 0
+        }}
+    ]
+}
