@@ -1,6 +1,6 @@
 {
     "Symbols":[
-        "ETH", "BTC", "TIA", "SOL", "MATIC", "DYDX", "SUI", "LINK"
+        "AAVE", "APE", "APT", "ARB", "ARK", "ATOM", "AVAX", "BANANA", "BCH", "BIGTIME", "BLZ", "BNB", "BTC", "CANTO", "CFX", "COMP", "CRV", "CYBER", "DOGE", "DOT", "DYDX", "ETH", "FRIEND", "FTM", "FTT", "FXS", "GMX", "HPOS", "INJ", "KAS", "LDO", "LINK", "LOOM", "LTC", "MATIC", "MKR", "OGN", "OP", "ORBS", "OX", "kPEPE", "RDNT", "REQ", "RLB", "RNDR", "RUNE", "SEI", "SHIA", "kSHIB", "SNX", "SOL", "STX", "SUI", "TRB", "TRX", "XRP", "UNI", "UNIBOT", "WLD", "YGG", "ZRO"
     ],
     "Exchanges": [
         "binance", "hyperliquid"

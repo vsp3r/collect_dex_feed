@@ -39,15 +39,17 @@ def start_writer(queue, size_counter):
 
 def monitor_queue(size_counter):
     while True:
+        post_alert(os.getenv("DISCORD_WEBHOOK_URL"), f"({time.time()}) still running w/ queue: {size_counter.value}")
         print(f'Queue size: {size_counter.value}')
-        time.sleep(1)
+        time.sleep(60)
+
 
 
 async def main(queue, symbols, size_counter):
 
     # with Pool(processes=3) as pool:
-    binance = BinanceConnector(queue, size_counter, symbols)
-    streams['binance'] = binance
+    # binance = BinanceConnector(queue, size_counter, symbols)
+    # streams['binance'] = binance
 
     hyperliquid = HyperliquidConnector(queue, size_counter, symbols)
     streams['hyperliquid'] = hyperliquid
