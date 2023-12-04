@@ -8,23 +8,28 @@ class DataWriter:
         self.size_counter = size_counter
         self.base_dir = base_dir
         self.running = True
+        self.msg_num = 0
+        self.start_time = time.perf_counter_ns()
 
     def run(self):
         while self.running or not self.queue.empty():
             # try:
             message = self.queue.get()
-
-            with self.size_counter.get_lock():
-                self.size_counter.value -= 1
-
-
-            if message is None:
+            if message == "SHUTDOWN" or None:
+                print('G0T SHUTDOWN MESSAGE')
+                self.close()
                 break
-            exchange, symbol, data = message
-            self.write_data(exchange, symbol, data)
-            # except Exception as e:
-            #     print(f'Error in writer: {e}')
-            #     break
+
+            self.parse_msg(message)
+
+
+    def parse_msg(self, message):
+        self.msg_num += 1
+        with self.size_counter.get_lock():
+            self.size_counter.value -= 1
+
+        exchange, symbol, data = message
+        self.write_data(exchange, symbol, data)
 
     def write_data(self, exchange, symbol, data):
         dir_path = os.path.join(self.base_dir, exchange, symbol)
@@ -34,20 +39,21 @@ class DataWriter:
         file_path = os.path.join(dir_path, filename)
 
         with open(file_path, 'a') as f:
-            f.write(str(int(time.time() * 10000000)))
+            f.write(str(int(time.time() * 1_000_000_000)))
             f.write(' ')
-            # f.write(self.queue.qsize())
-            # f.write(' ')
             f.write(data)
             f.write('\n')
         
     def close(self):
         # Don't process new data
         self.running = False
+        self.end_time = time.perf_counter_ns()
 
         # Empty the queue
         while not self.queue.empty():
-            asyncio.sleep(1)
+            message = self.queue.get()
+            self.parse_msg(message)
 
         print("Datawriter closed gracefully")
+        print(f'{self.msg_num} messages processed over {(self.end_time - self.start_time)/1_000_000_000:.4f} seconds')
         

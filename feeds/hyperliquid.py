@@ -11,14 +11,16 @@ class HyperliquidConnector:
         self.symbols = symbols
 
         self.ws_url = 'wss://api.hyperliquid.xyz/ws'
+        print(f'init hyperliquid w/ {symbols}')
 
     async def connect(self):
-        # print('start hl connect')
+        print('start hl connect')
         async with websockets.connect(self.ws_url) as ws:
-            # print('start hl websocket')
+            print('start hl websocket')
             await asyncio.gather(*(self.subscribe(ws, coin)
                                   for coin in self.symbols))
-          
+
+            print('hyperliquid finished subbing, parsing messages now')
             while True:
                 message = await ws.recv()
                 asyncio.create_task(self.process_data(message))
@@ -59,6 +61,5 @@ class HyperliquidConnector:
         except Full:
             print('QUEUE FULL, DROPPING ITEM')
 
-
-    # async def run(self):
-    #     await self.connect()
+    async def close(self):
+        print('Closing hl thing')

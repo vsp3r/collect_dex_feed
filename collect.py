@@ -5,7 +5,7 @@ from multiprocessing import Queue, Pool, Process, Value
 import asyncio
 import os
 import signal
-import datetime
+from datetime import datetime
 import time
 from dotenv import load_dotenv
 from src.data_writer import DataWriter
@@ -13,84 +13,81 @@ from src.data_writer import DataWriter
 from feeds.binance import BinanceConnector
 from feeds.hyperliquid import HyperliquidConnector
 
-# every 5 min send discord message that we're good
-
-
-
-# def writer_proc(queue, output):
-#     # time.sleep(3)
-#     while True:
-#         data = queue.get()
-#         if data is None:
-#             break
-#         symbol, timestamp, message = data
-#         date = datetime.datetime.fromtimestamp(timestamp).strftime('%Y%m%d')
-#         with open(os.path.join(output, '%s_%s.dat' % (symbol, date)), 'a') as f:
-#             f.write(str(int(timestamp * 1000000)))
-#             f.write(' ')
-#             f.write(message)
-#             f.write('\n')
-
-
 
 def start_writer(queue, size_counter):
     writer = DataWriter(queue, size_counter)
-    writer.run()
+    try:
+        writer.run()
+    except KeyboardInterrupt:
+        print('keyboard detected writer')
+        writer.close()
 
 def monitor_queue(size_counter):
     while True:
-        post_alert(os.getenv("DISCORD_WEBHOOK_URL"), f"({time.time()}) still running w/ queue: {size_counter.value}")
-        print(f'Queue size: {size_counter.value}')
-        time.sleep(60)
+        try:
+            current_time = datetime.now()
+            post_alert(os.getenv("DISCORD_WEBHOOK_URL"), f"({current_time}) still running w/ queue: {size_counter.value}")
+            print(f'Queue size: {size_counter.value}')
+            time.sleep(4)
+        except KeyboardInterrupt:
+            print("keyboard detected monitor queue")
+            break
 
 
+# def process_handler(target_class, *args):
+#     try:
+#         obj = target_class(*args)
+#         obj.run()
+#     except KeyboardInterrupt:
+#         print(f'Keyboard interrupt detecting in p_handler of {obj.__name__}')
+#         obj.close()
 
-async def main(queue, symbols, size_counter):
 
-    # with Pool(processes=3) as pool:
-    # binance = BinanceConnector(queue, size_counter, symbols)
-    # streams['binance'] = binance
+async def main(loop, queue, symbols, size_counter):
+    processes = []
+    streams = {}
+
+    binance = BinanceConnector(queue, size_counter, symbols)
+    streams['binance'] = binance
 
     hyperliquid = HyperliquidConnector(queue, size_counter, symbols)
     streams['hyperliquid'] = hyperliquid
 
     writer_p = Process(target=start_writer, args=(queue,size_counter,))
     writer_p.start()
+    processes.append(writer_p)
 
     monitor_p = Process(target=monitor_queue, args=(size_counter,))
     monitor_p.start()
+    processes.append(monitor_p)
+
+
+    for sig in [signal.SIGTERM, signal.SIGINT]:
+        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop, streams, processes, queue)))
 
     await asyncio.gather(
         *(stream.connect() for stream in streams.values()),
     )
 
-    # pool.apply(binance.start)
 
-        # hyperliquid = HyperliquidConnector(queue, symbols)
-        # pool.apply_async(hyperliquid.run)
-        # streams['hyperliquid'] = hyperliquid
-
-        # pool.apply_async(writer.run)
-        # pool.close()
-        # pool.join()
-
-
-
-async def shutdown(loop, streams, writer, queue):
+async def shutdown(loop, streams, processes, queue):
+    print("SHUTDOWN METHOD CALLED")
 
     # Close streams
-    for stream_name, stream in streams.items():
-        await stream.close()
+    for stream_name, stream_obj in streams.items():
+        await stream_obj.close()
 
     # Close writer
-    await writer.close()
+    queue.put("SHUTDOWN")
+
+    for p in processes:
+        print("joining processes")
+        p.join()
 
     queue.close()
     queue.join_thread()
 
     loop.stop()
-
-
 
 
 if __name__ == '__main__':
@@ -100,17 +97,19 @@ if __name__ == '__main__':
     # queue = 'x'
     config = config_parse('config.json')
     symbols = config['Symbols']
+
+    print(len(symbols))
     streams = {}
 
     loop = asyncio.get_event_loop()
-    # writer = DataWriter(queue)
 
-    # for sig in [signal.SIGTERM, signal.SIGINT]:
-    #     loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(loop, streams, writer, queue)))
     try:
-        loop.run_until_complete(main(queue, symbols, size_counter))
+        loop.run_until_complete(main(loop, queue, symbols, size_counter))
     except Exception as e:
         post_alert(os.getenv("DISCORD_WEBHOOK_URL"), f"({time.time()}) we have an issue {e}")
 
     # asyncio.run(main(queue, symbols))
     # main(queue, symbols)
+
+
+# 2332 messages over 4.6416 seconds

@@ -2,3 +2,5 @@ __pycache__/
 data/
 .env
 .DS_Store
+important_instructions.txt
+testing.ipynb
