@@ -3,9 +3,8 @@ import time
 import asyncio
 
 class DataWriter:
-    def __init__(self, queue, size_counter, base_dir='data'):
+    def __init__(self, queue, base_dir='data'):
         self.queue = queue
-        self.size_counter = size_counter
         self.base_dir = base_dir
         self.running = True
         self.msg_num = 0
@@ -25,8 +24,6 @@ class DataWriter:
 
     def parse_msg(self, message):
         self.msg_num += 1
-        with self.size_counter.get_lock():
-            self.size_counter.value -= 1
 
         exchange, symbol, data = message
         self.write_data(exchange, symbol, data)

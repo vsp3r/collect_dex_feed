@@ -1,0 +1,4 @@
+2023-12-04 10:54:10,957 [ERROR  ] [root] Collect level exception coroutines cannot be used with add_signal_handler()
+2023-12-04 10:56:07,909 [ERROR  ] [root] Collect level exception coroutines cannot be used with add_signal_handler()
+2023-12-04 10:57:07,941 [ERROR  ] [root] Collect level exception coroutines cannot be used with add_signal_handler()
+2023-12-04 10:58:02,158 [ERROR  ] [root] Collect level exception coroutines cannot be used with add_signal_handler()

@@ -13,6 +13,10 @@ class HyperliquidConnector:
         self.ws_url = 'wss://api.hyperliquid.xyz/ws'
         print(f'init hyperliquid w/ {symbols}')
 
+
+    def run(self):
+        asyncio.run(self.connect())
+
     async def connect(self):
         print('start hl connect')
         async with websockets.connect(self.ws_url) as ws:

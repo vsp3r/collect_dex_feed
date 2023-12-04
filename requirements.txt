@@ -1,3 +1,5 @@
 websockets
 python-dotenv
 requests
+pyyaml
+orjson
